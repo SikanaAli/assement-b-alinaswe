@@ -89,10 +89,47 @@ npm run prisma:migrate:deploy
 npm run prisma:seed
 ```
 
-`prisma/seed.ts` is a placeholder and does not create records yet.
+`prisma/seed.ts` creates two idempotent test users with Prisma `upsert`.
+
+## Test Credentials
+
+- Applicant: `applicant@example.com` / `password123`
+- Reviewer: `reviewer@example.com` / `password123`
+
+## Authentication
+
+- `POST /auth/login` authenticates a seeded user with email and password.
+- Passwords are verified with `bcrypt`.
+- Successful logins return a signed JWT access token and the authenticated user payload.
+- JWT-based guards and role-based authorization primitives are available for protected endpoints.
+
+Example request:
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "applicant@example.com",
+  "password": "password123"
+}
+```
+
+Example response:
+
+```json
+{
+  "accessToken": "jwt-token",
+  "user": {
+    "id": "user-uuid",
+    "name": "Applicant",
+    "email": "applicant@example.com",
+    "role": "APPLICANT"
+  }
+}
+```
 
 ## Current Backend Scope
 
 - `GET /health` returns the backend health status.
-- Authentication, application endpoints, and business logic are intentionally not implemented yet.
-
+- Application workflow endpoints and business logic are intentionally not implemented yet.
