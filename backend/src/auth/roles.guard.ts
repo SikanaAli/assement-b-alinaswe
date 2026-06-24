@@ -26,10 +26,13 @@ export class RolesGuard implements CanActivate {
     const user = request.user;
 
     if (!user || !requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Insufficient role.');
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: 'FORBIDDEN',
+        message: 'Insufficient role.',
+      });
     }
 
     return true;
   }
 }
-
