@@ -197,6 +197,15 @@ Content-Type: application/json
 }
 ```
 
+## Testing
+
+- Unit tests: `cd backend && npm test`
+- E2E tests: `cd backend && npm run test:e2e`
+- E2E tests require `TEST_DATABASE_URL` to point to a dedicated test database.
+- The e2e suite resets `Application` and `AuditLog` data before each test and reapplies migrations to the test database during startup.
+- Covered rules include applicant self-approval denial, reviewer approval with audit trail creation, reviewer rejection comment requirements, and applicant edit denial after submission.
+- The current edit-after-submit behavior returns `403` because the workflow treats post-submission edits as a forbidden action rather than a malformed request.
+
 ## Current Backend Scope
 
 - `GET /health` returns the backend health status.
