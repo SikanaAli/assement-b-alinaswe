@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
@@ -14,6 +15,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateApplicationDto } from './dto/create-application.dto';
+import { ReviewerQueueQueryDto } from './dto/reviewer-queue-query.dto';
+import { ReviewerTransitionDto } from './dto/reviewer-transition.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { ApplicationsService } from './applications.service';
 
@@ -37,6 +40,18 @@ export class ApplicationsController {
     return this.applicationsService.listMyApplications(currentUser);
   }
 
+  @Get('reviewer/queue')
+  @Roles(Role.REVIEWER)
+  reviewerQueue(
+    @CurrentUser() currentUser: AuthUser,
+    @Query() reviewerQueueQueryDto: ReviewerQueueQueryDto,
+  ) {
+    return this.applicationsService.reviewerQueue(
+      currentUser,
+      reviewerQueueQueryDto,
+    );
+  }
+
   @Get(':id')
   @Roles(Role.APPLICANT, Role.REVIEWER)
   getById(@CurrentUser() currentUser: AuthUser, @Param('id') id: string) {
@@ -58,5 +73,18 @@ export class ApplicationsController {
   submit(@CurrentUser() currentUser: AuthUser, @Param('id') id: string) {
     return this.applicationsService.submit(currentUser, id);
   }
-}
 
+  @Post(':id/transition')
+  @Roles(Role.REVIEWER)
+  transition(
+    @CurrentUser() currentUser: AuthUser,
+    @Param('id') id: string,
+    @Body() reviewerTransitionDto: ReviewerTransitionDto,
+  ) {
+    return this.applicationsService.reviewerTransition(
+      currentUser,
+      id,
+      reviewerTransitionDto,
+    );
+  }
+}

@@ -171,8 +171,35 @@ POST /applications/<applicationId>/submit
 Authorization: Bearer <accessToken>
 ```
 
+## Reviewer APIs
+
+- `GET /applications/reviewer/queue` returns the reviewer queue and supports optional filtering by `status`.
+- `POST /applications/:id/transition` applies reviewer transitions and creates an audit log entry.
+- Reviewer transitions are limited to `UNDER_REVIEW`, `APPROVED`, `REJECTED`, and `RETURNED`.
+
+Reviewer queue example:
+
+```http
+GET /applications/reviewer/queue?status=SUBMITTED
+Authorization: Bearer <reviewerAccessToken>
+```
+
+Reviewer transition example:
+
+```http
+POST /applications/<applicationId>/transition
+Authorization: Bearer <reviewerAccessToken>
+Content-Type: application/json
+
+{
+  "status": "APPROVED",
+  "comment": "Looks good"
+}
+```
+
 ## Current Backend Scope
 
 - `GET /health` returns the backend health status.
 - Applicant-facing application endpoints are implemented.
-- Reviewer transition endpoints and broader workflow business actions are intentionally not implemented yet.
+- Reviewer queue and transition endpoints are implemented.
+- Broader workflow business actions are intentionally not implemented yet.
