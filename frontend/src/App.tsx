@@ -10,6 +10,29 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+
 type Role = 'APPLICANT' | 'REVIEWER';
 type Category = 'GENERAL' | 'FINANCE' | 'HR' | 'IT';
 type Status =
@@ -104,7 +127,8 @@ type ApiClient = ReturnType<typeof createApiClient>;
 
 const API_BASE_URL_KEY = 'submission-approval-workflow-api-base-url';
 const SESSION_KEY = 'submission-approval-workflow-session';
-const defaultApiBaseUrl = 'http://127.0.0.1:3000';
+const defaultApiBaseUrl =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:3000';
 const categories: Category[] = ['GENERAL', 'FINANCE', 'HR', 'IT'];
 const reviewerQueueFilters: Array<'all' | Status> = [
   'all',
@@ -123,12 +147,23 @@ const reviewerActionLabels: Record<
   REJECTED: 'Reject',
   RETURNED: 'Return for Changes',
 };
-
 const emptyForm: ApplicationFormValues = {
   title: '',
   category: 'GENERAL',
   description: '',
   amount: '',
+};
+const nativeSelectClassName =
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60 disabled:cursor-not-allowed disabled:opacity-50';
+const detailLabelClassName = 'text-sm font-medium text-muted-foreground';
+const detailValueClassName = 'text-sm text-foreground';
+const statusBadgeClassNames: Record<Status, string> = {
+  DRAFT: 'border-transparent bg-slate-200 text-slate-700',
+  SUBMITTED: 'border-transparent bg-blue-100 text-blue-700',
+  UNDER_REVIEW: 'border-transparent bg-amber-100 text-amber-800',
+  APPROVED: 'border-transparent bg-emerald-100 text-emerald-700',
+  REJECTED: 'border-transparent bg-red-100 text-red-700',
+  RETURNED: 'border-transparent bg-rose-100 text-rose-700',
 };
 
 function App() {
@@ -219,141 +254,183 @@ function WorkflowApp() {
     session?.user.role === 'REVIEWER' ? '/reviewer/queue' : '/my-applications';
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar-section">
-          <h1 className="brand">Submission Approval Workflow</h1>
-          <p className="muted">
-            Lightweight applicant and reviewer workspace for managing applications.
-          </p>
-        </div>
-
-        <div className="sidebar-section">
-          <label className="field-label" htmlFor="api-base-url">
-            API base URL
-          </label>
-          <input
-            id="api-base-url"
-            className="text-input"
-            value={apiBaseUrl}
-            onChange={(event) => setApiBaseUrl(event.target.value)}
-            placeholder={defaultApiBaseUrl}
-          />
-        </div>
-
-        {!session ? (
-          <form className="auth-form" onSubmit={handleLogin}>
-            <div className="sidebar-section">
-              <h2 className="section-title">Sign in</h2>
-              <p className="muted">
-                Use the seeded applicant or reviewer account to open the workspace.
-              </p>
-            </div>
-
-            <label className="field-label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              className="text-input"
-              name="email"
-              type="email"
-              defaultValue="applicant@example.com"
-              required
-            />
-
-            <label className="field-label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              className="text-input"
-              name="password"
-              type="password"
-              defaultValue="password123"
-              required
-            />
-
-            {authError ? <p className="error-banner">{authError}</p> : null}
-
-            <button className="primary-button" type="submit" disabled={authLoading}>
-              {authLoading ? 'Signing in…' : 'Sign in'}
-            </button>
-          </form>
-        ) : (
-          <div className="sidebar-section">
-            <h2 className="section-title">Signed in</h2>
-            <p className="muted">{session.user.name}</p>
-            <p className="muted">{session.user.email}</p>
-            <p className="muted">Role: {session.user.role}</p>
-            <button className="secondary-button" type="button" onClick={handleLogout}>
-              Sign out
-            </button>
+    <div className="grid min-h-screen lg:grid-cols-[320px_minmax(0,1fr)]">
+      <aside className="border-b border-border/70 bg-slate-950 px-4 py-6 text-slate-100 lg:border-b-0 lg:border-r lg:px-6 lg:py-8">
+        <div className="flex h-full flex-col gap-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Submission Approval Workflow
+            </h1>
+            <p className="text-sm leading-6 text-slate-300">
+              Lightweight applicant and reviewer workspace for managing
+              applications.
+            </p>
           </div>
-        )}
 
-        <nav className="sidebar-section nav-links" aria-label="Workspace navigation">
-          {session?.user.role === 'REVIEWER' ? (
-            <Link className="nav-link" to="/reviewer/queue">
-              Reviewer Queue
-            </Link>
+          <div className="space-y-2">
+            <Label className="text-slate-100" htmlFor="api-base-url">
+              API base URL
+            </Label>
+            <Input
+              id="api-base-url"
+              className="border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-400"
+              value={apiBaseUrl}
+              onChange={(event) => setApiBaseUrl(event.target.value)}
+              placeholder={defaultApiBaseUrl}
+            />
+          </div>
+
+          {!session ? (
+            <Card className="border-slate-800 bg-slate-900/70 text-slate-100">
+              <CardHeader className="space-y-2">
+                <CardTitle>Sign in</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Use the seeded applicant or reviewer account to open the
+                  workspace.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleLogin}>
+                  <FormField htmlFor="email" label="Email">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      defaultValue="applicant@example.com"
+                      required
+                      className="border-slate-700 bg-slate-950 text-slate-100"
+                    />
+                  </FormField>
+
+                  <FormField htmlFor="password" label="Password">
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      defaultValue="password123"
+                      required
+                      className="border-slate-700 bg-slate-950 text-slate-100"
+                    />
+                  </FormField>
+
+                  {authError ? (
+                    <Alert variant="destructive">
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
+                  ) : null}
+
+                  <Button className="w-full" type="submit" disabled={authLoading}>
+                    {authLoading ? 'Signing in…' : 'Sign in'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           ) : (
-            <>
-              <Link className="nav-link" to="/my-applications">
-                My Applications
-              </Link>
-              <Link className="nav-link" to="/applications/new">
-                New Application
-              </Link>
-            </>
+            <Card className="border-slate-800 bg-slate-900/70 text-slate-100">
+              <CardHeader className="space-y-2">
+                <CardTitle>Signed in</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Active backend session details.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1 text-sm text-slate-200">
+                  <p className="font-medium">{session.user.name}</p>
+                  <p>{session.user.email}</p>
+                  <p>Role: {session.user.role}</p>
+                </div>
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="secondary"
+                  onClick={handleLogout}
+                >
+                  Sign out
+                </Button>
+              </CardContent>
+            </Card>
           )}
-        </nav>
+
+          <nav
+            className="mt-auto grid gap-2"
+            aria-label="Workspace navigation"
+          >
+            {session?.user.role === 'REVIEWER' ? (
+              <Button
+                asChild
+                variant="secondary"
+                className="justify-start bg-slate-800 text-slate-100 hover:bg-slate-700 hover:text-slate-50"
+              >
+                <Link to="/reviewer/queue">Reviewer Queue</Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="justify-start bg-slate-800 text-slate-100 hover:bg-slate-700 hover:text-slate-50"
+                >
+                  <Link to="/my-applications">My Applications</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="justify-start bg-slate-800 text-slate-100 hover:bg-slate-700 hover:text-slate-50"
+                >
+                  <Link to="/applications/new">New Application</Link>
+                </Button>
+              </>
+            )}
+          </nav>
+        </div>
       </aside>
 
-      <main className="content">
-        <Routes>
-          <Route path="/" element={<Navigate to={homePath} replace />} />
-          <Route
-            path="/my-applications"
-            element={
-              <RequireRole session={session} role="APPLICANT">
-                <MyApplicationsPage api={api} />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/applications/new"
-            element={
-              <RequireRole session={session} role="APPLICANT">
-                <ApplicationFormPage api={api} mode="create" />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/applications/:id/edit"
-            element={
-              <RequireRole session={session} role="APPLICANT">
-                <ApplicationFormPage api={api} mode="edit" />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/applications/:id"
-            element={
-              <RequireSignedIn session={session}>
-                <ApplicationDetailPage api={api} session={session} />
-              </RequireSignedIn>
-            }
-          />
-          <Route
-            path="/reviewer/queue"
-            element={
-              <RequireRole session={session} role="REVIEWER">
-                <ReviewerQueuePage api={api} />
-              </RequireRole>
-            }
-          />
-        </Routes>
+      <main className="px-4 py-6 md:px-8 md:py-8">
+        <div className="mx-auto max-w-6xl">
+          <Routes>
+            <Route path="/" element={<Navigate to={homePath} replace />} />
+            <Route
+              path="/my-applications"
+              element={
+                <RequireRole session={session} role="APPLICANT">
+                  <MyApplicationsPage api={api} />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/applications/new"
+              element={
+                <RequireRole session={session} role="APPLICANT">
+                  <ApplicationFormPage api={api} mode="create" />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/applications/:id/edit"
+              element={
+                <RequireRole session={session} role="APPLICANT">
+                  <ApplicationFormPage api={api} mode="edit" />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/applications/:id"
+              element={
+                <RequireSignedIn session={session}>
+                  <ApplicationDetailPage api={api} session={session} />
+                </RequireSignedIn>
+              }
+            />
+            <Route
+              path="/reviewer/queue"
+              element={
+                <RequireRole session={session} role="REVIEWER">
+                  <ReviewerQueuePage api={api} />
+                </RequireRole>
+              }
+            />
+          </Routes>
+        </div>
       </main>
     </div>
   );
@@ -368,12 +445,10 @@ function RequireSignedIn({
 }) {
   if (!session) {
     return (
-      <section className="panel">
-        <h2 className="page-title">Sign in required</h2>
-        <p className="muted">
-          Sign in with one of the seeded accounts to access this page.
-        </p>
-      </section>
+      <AccessCard
+        title="Sign in required"
+        description="Sign in with one of the seeded accounts to access this page."
+      />
     );
   }
 
@@ -391,23 +466,19 @@ function RequireRole({
 }) {
   if (!session) {
     return (
-      <section className="panel">
-        <h2 className="page-title">Sign in required</h2>
-        <p className="muted">
-          Sign in with one of the seeded accounts to access this page.
-        </p>
-      </section>
+      <AccessCard
+        title="Sign in required"
+        description="Sign in with one of the seeded accounts to access this page."
+      />
     );
   }
 
   if (session.user.role !== role) {
     return (
-      <section className="panel">
-        <h2 className="page-title">Access restricted</h2>
-        <p className="muted">
-          This page is available only to {role.toLowerCase()} users.
-        </p>
-      </section>
+      <AccessCard
+        title="Access restricted"
+        description={`This page is available only to ${role.toLowerCase()} users.`}
+      />
     );
   }
 
@@ -449,61 +520,66 @@ function MyApplicationsPage({ api }: { api: ApiClient }) {
   }, [api]);
 
   return (
-    <section className="panel">
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">My Applications</h2>
-          <p className="muted">
+    <Card>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <CardTitle>My Applications</CardTitle>
+          <CardDescription>
             Review your drafts and submitted applications in one place.
-          </p>
+          </CardDescription>
         </div>
-        <Link className="primary-button link-button" to="/applications/new">
-          Create new application
-        </Link>
-      </div>
+        <Button asChild>
+          <Link to="/applications/new">Create new application</Link>
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? <StateCard description="Loading applications…" /> : null}
+        {!loading && error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        {!loading && !error && applications.length === 0 ? (
+          <StateCard
+            title="No applications yet"
+            description="Create your first draft application to get started."
+          />
+        ) : null}
 
-      {loading ? <div className="state-card">Loading applications…</div> : null}
-      {!loading && error ? <div className="state-card error-banner">{error}</div> : null}
-      {!loading && !error && applications.length === 0 ? (
-        <div className="state-card">
-          <h3 className="state-title">No applications yet</h3>
-          <p className="muted">Create your first draft application to get started.</p>
-        </div>
-      ) : null}
-
-      {!loading && !error && applications.length > 0 ? (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Open</th>
-              </tr>
-            </thead>
-            <tbody>
+        {!loading && !error && applications.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Open</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {applications.map((application) => (
-                <tr key={application.id}>
-                  <td>{application.title}</td>
-                  <td>{application.category}</td>
-                  <td>{formatAmount(application.amount)}</td>
-                  <td>
+                <TableRow key={application.id}>
+                  <TableCell className="font-medium">{application.title}</TableCell>
+                  <TableCell>{application.category}</TableCell>
+                  <TableCell>{formatAmount(application.amount)}</TableCell>
+                  <TableCell>
                     <StatusBadge status={application.status} />
-                  </td>
-                  <td>{formatDateTime(application.updatedAt)}</td>
-                  <td>
-                    <Link to={`/applications/${application.id}`}>View details</Link>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell>{formatDateTime(application.updatedAt)}</TableCell>
+                  <TableCell>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={`/applications/${application.id}`}>View details</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
-    </section>
+            </TableBody>
+          </Table>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -557,76 +633,83 @@ function ReviewerQueuePage({ api }: { api: ApiClient }) {
   }
 
   return (
-    <section className="panel">
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Reviewer Queue</h2>
-          <p className="muted">
+    <Card>
+      <CardHeader className="space-y-4">
+        <div className="space-y-2">
+          <CardTitle>Reviewer Queue</CardTitle>
+          <CardDescription>
             Review submitted applications and move them through the workflow.
-          </p>
+          </CardDescription>
         </div>
-      </div>
-
-      <div className="filter-row" role="group" aria-label="Queue status filter">
-        {reviewerQueueFilters.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            className={`filter-chip ${selectedFilter === filter ? 'is-active' : ''}`}
-            onClick={() => handleFilterChange(filter)}
-          >
-            {filter === 'all' ? 'All' : filter}
-          </button>
-        ))}
-      </div>
-
-      {loading ? <div className="state-card">Loading reviewer queue…</div> : null}
-      {!loading && error ? <div className="state-card error-banner">{error}</div> : null}
-      {!loading && !error && items.length === 0 ? (
-        <div className="state-card">
-          <h3 className="state-title">No applications in this queue</h3>
-          <p className="muted">Try another filter or check back later.</p>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Queue status filter">
+          {reviewerQueueFilters.map((filter) => (
+            <Button
+              key={filter}
+              type="button"
+              size="sm"
+              variant={selectedFilter === filter ? 'default' : 'outline'}
+              onClick={() => handleFilterChange(filter)}
+            >
+              {filter === 'all' ? 'All' : filter}
+            </Button>
+          ))}
         </div>
-      ) : null}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? <StateCard description="Loading reviewer queue…" /> : null}
+        {!loading && error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        {!loading && !error && items.length === 0 ? (
+          <StateCard
+            title="No applications in this queue"
+            description="Try another filter or check back later."
+          />
+        ) : null}
 
-      {!loading && !error && items.length > 0 ? (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Owner</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Open</th>
-              </tr>
-            </thead>
-            <tbody>
+        {!loading && !error && items.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Open</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.title}</td>
-                  <td>
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.title}</TableCell>
+                  <TableCell>
                     <div>{item.owner.name}</div>
-                    <div className="muted">{item.owner.email}</div>
-                  </td>
-                  <td>{item.category}</td>
-                  <td>{formatAmount(item.amount)}</td>
-                  <td>
+                    <div className="text-sm text-muted-foreground">
+                      {item.owner.email}
+                    </div>
+                  </TableCell>
+                  <TableCell>{item.category}</TableCell>
+                  <TableCell>{formatAmount(item.amount)}</TableCell>
+                  <TableCell>
                     <StatusBadge status={item.status} />
-                  </td>
-                  <td>{formatDateTime(item.updatedAt)}</td>
-                  <td>
-                    <Link to={`/applications/${item.id}`}>View details</Link>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell>{formatDateTime(item.updatedAt)}</TableCell>
+                  <TableCell>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={`/applications/${item.id}`}>View details</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
-    </section>
+            </TableBody>
+          </Table>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -747,101 +830,103 @@ function ApplicationFormPage({
   const isDraft = status === 'DRAFT';
 
   return (
-    <section className="panel">
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">
+    <Card>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <CardTitle>
             {mode === 'create' ? 'New Application' : 'Edit Application'}
-          </h2>
-          <p className="muted">
+          </CardTitle>
+          <CardDescription>
             Complete the application fields and save your draft before submission.
-          </p>
+          </CardDescription>
         </div>
-        <Link className="secondary-button link-button" to="/my-applications">
-          Back to list
-        </Link>
-      </div>
+        <Button asChild variant="outline">
+          <Link to="/my-applications">Back to list</Link>
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? <StateCard description="Loading application…" /> : null}
+        {!loading && error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
 
-      {loading ? <div className="state-card">Loading application…</div> : null}
-      {!loading && error ? <div className="state-card error-banner">{error}</div> : null}
+        {!loading ? (
+          <form className="space-y-4" onSubmit={handleSave} noValidate>
+            <FormField label="Title" error={validationErrors.title} htmlFor="title">
+              <Input
+                id="title"
+                value={values.title}
+                onChange={(event) => updateValue('title', event.target.value)}
+              />
+            </FormField>
 
-      {!loading ? (
-        <form className="form-layout" onSubmit={handleSave} noValidate>
-          <FormField label="Title" error={validationErrors.title} htmlFor="title">
-            <input
-              id="title"
-              className="text-input"
-              value={values.title}
-              onChange={(event) => updateValue('title', event.target.value)}
-            />
-          </FormField>
-
-          <FormField
-            label="Category"
-            error={validationErrors.category}
-            htmlFor="category"
-          >
-            <select
-              id="category"
-              className="text-input"
-              value={values.category}
-              onChange={(event) =>
-                updateValue('category', event.target.value as Category)
-              }
+            <FormField
+              label="Category"
+              error={validationErrors.category}
+              htmlFor="category"
             >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField
-            label="Description"
-            error={validationErrors.description}
-            htmlFor="description"
-          >
-            <textarea
-              id="description"
-              className="text-area"
-              rows={6}
-              value={values.description}
-              onChange={(event) => updateValue('description', event.target.value)}
-            />
-          </FormField>
-
-          <FormField label="Amount" error={validationErrors.amount} htmlFor="amount">
-            <input
-              id="amount"
-              className="text-input"
-              type="number"
-              min="0"
-              step="0.01"
-              value={values.amount}
-              onChange={(event) => updateValue('amount', event.target.value)}
-            />
-          </FormField>
-
-          <div className="form-actions">
-            <button className="primary-button" type="submit" disabled={saving}>
-              {saving ? 'Saving…' : mode === 'create' ? 'Create draft' : 'Save changes'}
-            </button>
-
-            {mode === 'edit' && isDraft ? (
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={submitLoading}
-                onClick={handleSubmitApplication}
+              <select
+                id="category"
+                className={nativeSelectClassName}
+                value={values.category}
+                onChange={(event) =>
+                  updateValue('category', event.target.value as Category)
+                }
               >
-                {submitLoading ? 'Submitting…' : 'Submit application'}
-              </button>
-            ) : null}
-          </div>
-        </form>
-      ) : null}
-    </section>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField
+              label="Description"
+              error={validationErrors.description}
+              htmlFor="description"
+            >
+              <Textarea
+                id="description"
+                rows={6}
+                value={values.description}
+                onChange={(event) => updateValue('description', event.target.value)}
+              />
+            </FormField>
+
+            <FormField label="Amount" error={validationErrors.amount} htmlFor="amount">
+              <Input
+                id="amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={values.amount}
+                onChange={(event) => updateValue('amount', event.target.value)}
+              />
+            </FormField>
+
+            <div className="flex flex-wrap gap-3">
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Saving…' : mode === 'create' ? 'Create draft' : 'Save changes'}
+              </Button>
+
+              {mode === 'edit' && isDraft ? (
+                <Button
+                  variant="outline"
+                  type="button"
+                  disabled={submitLoading}
+                  onClick={handleSubmitApplication}
+                >
+                  {submitLoading ? 'Submitting…' : 'Submit application'}
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -853,7 +938,6 @@ function ApplicationDetailPage({
   session: Session | null;
 }) {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -965,118 +1049,155 @@ function ApplicationDetailPage({
   const isDraft = application?.status === 'DRAFT';
 
   return (
-    <section className="panel">
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Application Detail</h2>
-          <p className="muted">Review the application data and its audit trail.</p>
-        </div>
-        <Link
-          className="secondary-button link-button"
-          to={isReviewer ? '/reviewer/queue' : '/my-applications'}
-        >
-          Back to list
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <CardTitle>Application Detail</CardTitle>
+            <CardDescription>
+              Review the application data and its audit trail.
+            </CardDescription>
+          </div>
+          <Button asChild variant="outline">
+            <Link to={isReviewer ? '/reviewer/queue' : '/my-applications'}>
+              Back to list
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? <StateCard description="Loading application…" /> : null}
+          {!loading && error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          {!loading && successMessage ? (
+            <Alert variant="success">
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
+          ) : null}
 
-      {loading ? <div className="state-card">Loading application…</div> : null}
-      {!loading && error ? <div className="state-card error-banner">{error}</div> : null}
-      {!loading && successMessage ? (
-        <div className="state-card success-banner">{successMessage}</div>
-      ) : null}
+          {!loading && application ? (
+            <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+              <Card className="shadow-none">
+                <CardHeader className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <CardTitle>{application.title}</CardTitle>
+                    <StatusBadge status={application.status} />
+                  </div>
+                  <CardDescription>
+                    {application.description || 'No description provided.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <dt className={detailLabelClassName}>Category</dt>
+                      <dd className={detailValueClassName}>{application.category}</dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className={detailLabelClassName}>Amount</dt>
+                      <dd className={detailValueClassName}>
+                        {formatAmount(application.amount)}
+                      </dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className={detailLabelClassName}>Created</dt>
+                      <dd className={detailValueClassName}>
+                        {formatDateTime(application.createdAt)}
+                      </dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className={detailLabelClassName}>Updated</dt>
+                      <dd className={detailValueClassName}>
+                        {formatDateTime(application.updatedAt)}
+                      </dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-none">
+                <CardHeader className="space-y-2">
+                  <CardTitle>Actions</CardTitle>
+                  <CardDescription>
+                    Available actions depend on your role and the current workflow state.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isApplicant ? (
+                    <ApplicantActionsCard
+                      application={application}
+                      submitLoading={submitLoading}
+                      onSubmit={handleSubmitApplication}
+                    />
+                  ) : null}
+
+                  {isReviewer ? (
+                    <ReviewerActionsCard
+                      application={application}
+                      reviewerErrors={reviewerErrors}
+                      reviewerLoading={reviewerLoading}
+                      reviewerValues={reviewerValues}
+                      setReviewerValues={setReviewerValues}
+                      onTransition={handleReviewerTransition}
+                    />
+                  ) : null}
+
+                  {!isApplicant && !isReviewer ? (
+                    <StateCard description="No actions available for this role." />
+                  ) : null}
+
+                  {isApplicant && !isDraft ? (
+                    <StateCard description="This application is no longer editable because it is not in draft." />
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {!loading && application ? (
-        <>
-          <div className="detail-grid">
-            <div className="detail-card">
-              <h3 className="detail-title">{application.title}</h3>
-              <p className="muted">{application.description || 'No description provided.'}</p>
-              <dl className="detail-list">
-                <div>
-                  <dt>Category</dt>
-                  <dd>{application.category}</dd>
-                </div>
-                <div>
-                  <dt>Amount</dt>
-                  <dd>{formatAmount(application.amount)}</dd>
-                </div>
-                <div>
-                  <dt>Status</dt>
-                  <dd>
-                    <StatusBadge status={application.status} />
-                  </dd>
-                </div>
-                <div>
-                  <dt>Created</dt>
-                  <dd>{formatDateTime(application.createdAt)}</dd>
-                </div>
-                <div>
-                  <dt>Updated</dt>
-                  <dd>{formatDateTime(application.updatedAt)}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <div className="detail-card">
-              <h3 className="detail-title">Actions</h3>
-
-              {isApplicant ? (
-                <ApplicantActionsCard
-                  application={application}
-                  submitLoading={submitLoading}
-                  onSubmit={handleSubmitApplication}
-                />
-              ) : null}
-
-              {isReviewer ? (
-                <ReviewerActionsCard
-                  application={application}
-                  reviewerErrors={reviewerErrors}
-                  reviewerLoading={reviewerLoading}
-                  reviewerValues={reviewerValues}
-                  setReviewerValues={setReviewerValues}
-                  onTransition={handleReviewerTransition}
-                />
-              ) : null}
-
-              {!isApplicant && !isReviewer ? (
-                <div className="state-card">No actions available for this role.</div>
-              ) : null}
-
-              {isApplicant && !isDraft ? (
-                <div className="state-card">
-                  This application is no longer editable because it is not in draft.
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <section className="audit-section">
-            <h3 className="detail-title">Audit Log</h3>
+        <Card>
+          <CardHeader>
+            <CardTitle>Audit Log</CardTitle>
+            <CardDescription>
+              Chronological workflow history for this application.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             {application.auditLogs.length === 0 ? (
-              <div className="state-card">No workflow history yet.</div>
+              <StateCard description="No workflow history yet." />
             ) : (
-              <ol className="audit-list">
+              <ol className="space-y-3">
                 {application.auditLogs.map((log) => (
-                  <li className="audit-item" key={log.id}>
-                    <div className="audit-row">
+                  <li
+                    key={log.id}
+                    className="rounded-lg border border-border bg-muted/40 p-4"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <strong>
                         {log.oldStatus} → {log.newStatus}
                       </strong>
-                      <span className="muted">{formatDateTime(log.createdAt)}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDateTime(log.createdAt)}
+                      </span>
                     </div>
-                    <div className="muted">
+                    <div className="mt-2 text-sm text-muted-foreground">
                       {log.actor.name} ({log.actor.email})
                     </div>
-                    <div>{log.comment?.trim() ? log.comment : 'No comment provided.'}</div>
+                    <div className="mt-2 text-sm text-foreground">
+                      {log.comment?.trim() ? log.comment : 'No comment provided.'}
+                    </div>
                   </li>
                 ))}
               </ol>
             )}
-          </section>
-        </>
+          </CardContent>
+        </Card>
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -1091,27 +1212,25 @@ function ApplicantActionsCard({
 }) {
   if (application.status !== 'DRAFT') {
     return (
-      <p className="muted">Draft applications can still be edited or submitted.</p>
+      <p className="text-sm text-muted-foreground">
+        Draft applications can still be edited or submitted.
+      </p>
     );
   }
 
   return (
-    <div className="stack-actions">
-      <p className="muted">Draft applications can still be edited or submitted.</p>
-      <Link
-        className="primary-button link-button"
-        to={`/applications/${application.id}/edit`}
-      >
-        Edit application
-      </Link>
-      <button
-        className="secondary-button"
-        type="button"
-        disabled={submitLoading}
-        onClick={onSubmit}
-      >
-        {submitLoading ? 'Submitting…' : 'Submit application'}
-      </button>
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Draft applications can still be edited or submitted.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild>
+          <Link to={`/applications/${application.id}/edit`}>Edit application</Link>
+        </Button>
+        <Button variant="outline" type="button" disabled={submitLoading} onClick={onSubmit}>
+          {submitLoading ? 'Submitting…' : 'Submit application'}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1136,19 +1255,18 @@ function ReviewerActionsCard({
   const availableActions = getReviewerActions(application.status);
 
   return (
-    <div className="stack-actions">
-      <p className="muted">
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
         Reviewer actions are hidden when the current status cannot move further.
       </p>
 
       {availableActions.length === 0 ? (
-        <div className="state-card">No reviewer transitions are available.</div>
+        <StateCard description="No reviewer transitions are available." />
       ) : (
         <>
           <FormField label="Comment" error={reviewerErrors.comment} htmlFor="reviewer-comment">
-            <textarea
+            <Textarea
               id="reviewer-comment"
-              className="text-area"
               rows={4}
               value={reviewerValues.comment}
               onChange={(event) =>
@@ -1158,19 +1276,17 @@ function ReviewerActionsCard({
             />
           </FormField>
 
-          <div className="form-actions">
+          <div className="flex flex-wrap gap-3">
             {availableActions.map((status) => (
-              <button
+              <Button
                 key={status}
-                className="secondary-button"
+                variant={status === 'APPROVED' ? 'default' : 'outline'}
                 type="button"
                 disabled={Boolean(reviewerLoading)}
                 onClick={() => onTransition(status)}
               >
-                {reviewerLoading === status
-                  ? 'Saving…'
-                  : reviewerActionLabels[status]}
-              </button>
+                {reviewerLoading === status ? 'Saving…' : reviewerActionLabels[status]}
+              </Button>
             ))}
           </div>
         </>
@@ -1191,18 +1307,50 @@ function FormField({
   label: string;
 }) {
   return (
-    <div className="form-field">
-      <label className="field-label" htmlFor={htmlFor}>
-        {label}
-      </label>
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      {error ? <p className="field-error">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
     </div>
   );
 }
 
+function AccessCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function StateCard({
+  title,
+  description,
+}: {
+  title?: string;
+  description: string;
+}) {
+  return (
+    <Card className="bg-muted/40 shadow-none">
+      <CardContent className={cn('space-y-2 p-4', !title && 'space-y-0')}>
+        {title ? <h3 className="font-medium">{title}</h3> : null}
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function StatusBadge({ status }: { status: Status }) {
-  return <span className={`status-badge status-${status.toLowerCase()}`}>{status}</span>;
+  return <Badge className={statusBadgeClassNames[status]}>{status}</Badge>;
 }
 
 function getReviewerActions(currentStatus: Status) {
@@ -1324,9 +1472,7 @@ function createApiClient({
       throw {
         statusCode: response.status,
         code: payload?.code,
-        message:
-          payload?.message ??
-          `Request failed with status ${response.status}.`,
+        message: payload?.message ?? `Request failed with status ${response.status}.`,
       } satisfies ApiError;
     }
 

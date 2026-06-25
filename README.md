@@ -23,9 +23,11 @@ submission-approval-workflow/
 ## Local Setup
 
 1. Copy `.env.example` to `.env`.
-2. Start PostgreSQL with Docker Compose.
-3. Install backend dependencies, generate the Prisma client, and run migrations.
-4. Install frontend dependencies and run the web app.
+2. Optionally copy `frontend/.env.example` to `frontend/.env` for Vite API URL overrides. `backend/.env.example` mirrors the backend variables for reference.
+3. Install backend and frontend dependencies.
+4. Start PostgreSQL and the backend with Docker Compose.
+5. Seed the database.
+6. Run the frontend separately with Vite.
 
 ## Commands
 
@@ -36,6 +38,7 @@ cd backend
 npm install
 npm run prisma:generate
 npm run prisma:migrate
+npm run prisma:seed
 npm run start:dev
 ```
 
@@ -47,10 +50,69 @@ npm install
 npm run dev
 ```
 
-Database:
+Infrastructure:
 
 ```bash
 docker compose up -d
+```
+
+## Local Development
+
+Root environment:
+
+```bash
+cp .env.example .env
+```
+
+Optional service-local environment files:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Install dependencies:
+
+```bash
+cd backend && npm install
+cd ../frontend && npm install
+```
+
+Start PostgreSQL and the backend:
+
+```bash
+docker compose up -d
+```
+
+The backend container waits for PostgreSQL to become healthy and then starts on `http://127.0.0.1:3000`.
+It also runs `prisma migrate deploy` during container startup.
+Local frontend origins are allowed through CORS by default for `http://127.0.0.1:5173` and `http://localhost:5173`.
+Override `FRONTEND_ORIGIN` in `.env` if you use a different frontend origin.
+
+Run Prisma migrations from the backend directory:
+
+```bash
+cd backend
+npm run prisma:migrate
+```
+
+Seed the database:
+
+```bash
+cd backend
+npm run prisma:seed
+```
+
+Run the frontend separately:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:3000/health
 ```
 
 ## Data Model
