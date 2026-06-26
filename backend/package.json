@@ -14,12 +14,14 @@
     "start:dev": "ts-node --project tsconfig.json src/main.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@nestjs/common": "^11.1.27",
     "@nestjs/core": "^11.1.27",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.27",
     "@nestjs/swagger": "^11.4.4",
+    "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^6.10.1",
     "@scalar/nestjs-api-reference": "^1.2.5",
     "bcrypt": "^5.1.1",
@@ -45,8 +47,5 @@
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
-  },
-  "prisma": {
-    "seed": "npm run prisma:seed"
   }
 }

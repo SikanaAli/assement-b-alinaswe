@@ -10,14 +10,15 @@ import {
 } from './application-workflow.types';
 
 const terminalStatuses = new Set<Status>([Status.APPROVED, Status.REJECTED]);
+const editableStatuses = new Set<Status>([Status.DRAFT, Status.RETURNED]);
 
 @Injectable()
 export class ApplicationWorkflowService {
   assertCanEditApplication(context: ApplicationEditContext) {
-    if (context.currentStatus !== Status.DRAFT) {
+    if (!editableStatuses.has(context.currentStatus)) {
       throw this.createError(
         'APPLICATION_EDIT_FORBIDDEN',
-        'Applications can only be edited while they are in DRAFT status.',
+        'Applications can only be edited while they are in DRAFT or RETURNED status.',
         403,
       );
     }
@@ -25,7 +26,7 @@ export class ApplicationWorkflowService {
     if (context.actorId !== context.applicationOwnerId) {
       throw this.createError(
         'APPLICATION_EDIT_FORBIDDEN',
-        'Only the owner can edit a draft application.',
+        'Only the owner can edit a draft or returned application.',
         403,
       );
     }

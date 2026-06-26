@@ -196,7 +196,8 @@ Example response:
 - The backend keeps status transition rules in a dedicated `ApplicationWorkflowService`.
 - Controllers should delegate workflow validation to this service rather than embedding transition logic.
 - Applicants can only submit their own `DRAFT` applications.
-- Only the owner can edit an application, and only while it is in `DRAFT`.
+- Only the owner can edit an application while it is in `DRAFT` or `RETURNED`.
+- When an applicant edits a `RETURNED` application, the save transitions it back to `DRAFT` so it can be resubmitted.
 - Reviewers can move `SUBMITTED` applications to `UNDER_REVIEW`, `APPROVED`, `REJECTED`, or `RETURNED`.
 - Reviewers can move `UNDER_REVIEW` applications to `APPROVED`, `REJECTED`, or `RETURNED`.
 - `APPROVED` and `REJECTED` are terminal states.
@@ -208,7 +209,8 @@ Example response:
 - `POST /applications` creates a `DRAFT` application for the authenticated applicant.
 - `GET /applications/my` lists applications owned by the authenticated applicant.
 - `GET /applications/:id` returns a single application. Applicants can view only their own; reviewers can view any.
-- `PATCH /applications/:id` updates an applicant-owned application only while it is still `DRAFT`.
+- `PATCH /applications/:id` updates an applicant-owned application while it is in `DRAFT` or `RETURNED`.
+- Saving a `RETURNED` application records an audit log from `RETURNED` to `DRAFT`.
 - `POST /applications/:id/submit` submits a draft application and records an audit log from `DRAFT` to `SUBMITTED`.
 
 Create example:

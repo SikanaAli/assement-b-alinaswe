@@ -828,6 +828,7 @@ function ApplicationFormPage({
   }
 
   const isDraft = status === 'DRAFT';
+  const isReturned = status === 'RETURNED';
 
   return (
     <Card>
@@ -837,7 +838,9 @@ function ApplicationFormPage({
             {mode === 'create' ? 'New Application' : 'Edit Application'}
           </CardTitle>
           <CardDescription>
-            Complete the application fields and save your draft before submission.
+            {isReturned
+              ? 'Update the returned application. Saving changes will move it back to draft.'
+              : 'Complete the application fields and save your draft before submission.'}
           </CardDescription>
         </div>
         <Button asChild variant="outline">
@@ -1047,6 +1050,8 @@ function ApplicationDetailPage({
   const isApplicant = session?.user.role === 'APPLICANT';
   const isReviewer = session?.user.role === 'REVIEWER';
   const isDraft = application?.status === 'DRAFT';
+  const isReturned = application?.status === 'RETURNED';
+  const isApplicantEditable = isDraft || isReturned;
 
   return (
     <div className="space-y-6">
@@ -1148,8 +1153,8 @@ function ApplicationDetailPage({
                     <StateCard description="No actions available for this role." />
                   ) : null}
 
-                  {isApplicant && !isDraft ? (
-                    <StateCard description="This application is no longer editable because it is not in draft." />
+                  {isApplicant && !isApplicantEditable ? (
+                    <StateCard description="This application is no longer editable because it is not in draft or returned-for-changes status." />
                   ) : null}
                 </CardContent>
               </Card>
@@ -1210,10 +1215,10 @@ function ApplicantActionsCard({
   submitLoading: boolean;
   onSubmit: () => void;
 }) {
-  if (application.status !== 'DRAFT') {
+  if (application.status !== 'DRAFT' && application.status !== 'RETURNED') {
     return (
       <p className="text-sm text-muted-foreground">
-        Draft applications can still be edited or submitted.
+        Only draft or returned applications can be edited by the applicant.
       </p>
     );
   }
@@ -1221,15 +1226,19 @@ function ApplicantActionsCard({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Draft applications can still be edited or submitted.
+        {application.status === 'RETURNED'
+          ? 'Returned applications can be edited. Saving changes moves them back to draft before resubmission.'
+          : 'Draft applications can still be edited or submitted.'}
       </p>
       <div className="flex flex-wrap gap-3">
         <Button asChild>
           <Link to={`/applications/${application.id}/edit`}>Edit application</Link>
         </Button>
-        <Button variant="outline" type="button" disabled={submitLoading} onClick={onSubmit}>
-          {submitLoading ? 'Submitting…' : 'Submit application'}
-        </Button>
+        {application.status === 'DRAFT' ? (
+          <Button variant="outline" type="button" disabled={submitLoading} onClick={onSubmit}>
+            {submitLoading ? 'Submitting…' : 'Submit application'}
+          </Button>
+        ) : null}
       </div>
     </div>
   );
