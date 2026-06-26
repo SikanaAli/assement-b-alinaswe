@@ -27,10 +27,23 @@ services:
     environment:
       DATABASE_URL: postgresql://workflow_user:workflow_password@postgres:5432/workflow_db
       JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_ORIGIN: http://localhost:8080,http://127.0.0.1:8080
       HOST: 0.0.0.0
       PORT: 3000
     ports:
       - "3000:3000"
+    restart: unless-stopped
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:3000
+    container_name: submission-approval-workflow-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
     restart: unless-stopped
 
 volumes:

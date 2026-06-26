@@ -8,6 +8,7 @@
     "prisma:migrate": "dotenv -e ../.env -- prisma migrate dev",
     "prisma:migrate:deploy": "dotenv -e ../.env -- prisma migrate deploy",
     "prisma:seed": "dotenv -e ../.env -- ts-node --project tsconfig.json prisma/seed.ts",
+    "prisma:seed:runtime": "ts-node --project tsconfig.json prisma/seed.ts",
     "test": "jest --runInBand",
     "test:e2e": "dotenv -e ../.env -- jest --config ./jest.e2e.config.js --runInBand",
     "start": "node dist/main.js",
