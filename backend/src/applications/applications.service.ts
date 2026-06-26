@@ -62,6 +62,7 @@ export class ApplicationsService {
         id: true,
         title: true,
         category: true,
+        amount: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -132,27 +133,45 @@ export class ApplicationsService {
       currentStatus: application.status,
     });
 
-    return this.prisma.application.update({
-      where: { id },
-      data: {
-        ...(updateApplicationDto.title !== undefined
-          ? { title: updateApplicationDto.title }
-          : {}),
-        ...(updateApplicationDto.category !== undefined
-          ? { category: updateApplicationDto.category }
-          : {}),
-        ...(updateApplicationDto.description !== undefined
-          ? { description: updateApplicationDto.description }
-          : {}),
-        ...(updateApplicationDto.amount !== undefined
-          ? { amount: this.toDecimal(updateApplicationDto.amount) }
-          : {}),
-      },
-      include: {
-        auditLogs: {
-          orderBy: { createdAt: 'asc' },
+    const updateData: Prisma.ApplicationUpdateInput = {
+      ...(updateApplicationDto.title !== undefined
+        ? { title: updateApplicationDto.title }
+        : {}),
+      ...(updateApplicationDto.category !== undefined
+        ? { category: updateApplicationDto.category }
+        : {}),
+      ...(updateApplicationDto.description !== undefined
+        ? { description: updateApplicationDto.description }
+        : {}),
+      ...(updateApplicationDto.amount !== undefined
+        ? { amount: this.toDecimal(updateApplicationDto.amount) }
+        : {}),
+      ...(application.status === Status.RETURNED ? { status: Status.DRAFT } : {}),
+    };
+
+    return this.prisma.$transaction(async (transaction) => {
+      const updatedApplication = await transaction.application.update({
+        where: { id },
+        data: updateData,
+        include: {
+          auditLogs: {
+            orderBy: { createdAt: 'asc' },
+          },
         },
-      },
+      });
+
+      if (application.status === Status.RETURNED) {
+        await transaction.auditLog.create({
+          data: {
+            applicationId: application.id,
+            actorId: currentUser.id,
+            oldStatus: Status.RETURNED,
+            newStatus: Status.DRAFT,
+          },
+        });
+      }
+
+      return updatedApplication;
     });
   }
 

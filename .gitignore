@@ -5,3 +5,9 @@ coverage/
 .DS_Store
 *.log
 
+.agents/
+backend/.agents/
+skills-lock.json
+backend/skills-lock.json
+.neon
+backend/.neon

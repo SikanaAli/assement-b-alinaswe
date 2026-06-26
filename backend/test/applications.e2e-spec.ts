@@ -178,6 +178,53 @@ describe('Applications e2e', () => {
     expect(response.body.code).toBe('APPLICATION_EDIT_FORBIDDEN');
   });
 
+  it('allows an applicant to edit a returned application and moves it back to draft', async () => {
+    const applicantToken = await loginAs('applicant@example.com');
+    const applicationId = await createApplication(applicantToken);
+
+    await submitApplication(applicantToken, applicationId);
+
+    const reviewerToken = await loginAs('reviewer@example.com');
+    const returnResponse = await request(app.getHttpServer())
+      .post(`/applications/${applicationId}/transition`)
+      .set('Authorization', `Bearer ${reviewerToken}`)
+      .send({
+        status: 'RETURNED',
+        comment: 'Please revise the cost breakdown.',
+      });
+
+    expect(returnResponse.status).toBe(201);
+    expect(returnResponse.body.status).toBe('RETURNED');
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/applications/${applicationId}`)
+      .set('Authorization', `Bearer ${applicantToken}`)
+      .send({
+        title: 'Budget Increase Request - Revised',
+      });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.status).toBe('DRAFT');
+
+    const getResponse = await request(app.getHttpServer())
+      .get(`/applications/${applicationId}`)
+      .set('Authorization', `Bearer ${applicantToken}`);
+
+    expect(getResponse.status).toBe(200);
+    expect(
+      getResponse.body.auditLogs.map(
+        (auditLog: { oldStatus: string; newStatus: string }) => ({
+          oldStatus: auditLog.oldStatus,
+          newStatus: auditLog.newStatus,
+        }),
+      ),
+    ).toEqual([
+      { oldStatus: 'DRAFT', newStatus: 'SUBMITTED' },
+      { oldStatus: 'SUBMITTED', newStatus: 'RETURNED' },
+      { oldStatus: 'RETURNED', newStatus: 'DRAFT' },
+    ]);
+  });
+
   async function loginAs(email: string) {
     const response = await request(app.getHttpServer()).post('/auth/login').send({
       email,

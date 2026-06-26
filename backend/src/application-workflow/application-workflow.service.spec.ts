@@ -74,10 +74,21 @@ describe('ApplicationWorkflowService', () => {
       {
         code: 'APPLICATION_EDIT_FORBIDDEN',
         message:
-          'Applications can only be edited while they are in DRAFT status.',
+          'Applications can only be edited while they are in DRAFT or RETURNED status.',
         statusCode: 403,
       },
     );
+  });
+
+  it('allows applicants to edit their own RETURNED applications', () => {
+    expect(() =>
+      service.assertCanEditApplication({
+        actorId: ownerId,
+        actorRole: Role.APPLICANT,
+        applicationOwnerId: ownerId,
+        currentStatus: Status.RETURNED,
+      }),
+    ).not.toThrow();
   });
 
   it('allows SUBMITTED to APPROVED by a reviewer', () => {
