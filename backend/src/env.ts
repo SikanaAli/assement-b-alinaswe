@@ -21,7 +21,7 @@ export const env = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
-  host: process.env.HOST ?? '127.0.0.1',
+  host: process.env.HOST ?? '0.0.0.0',
   jwtSecret: getRequiredEnv('JWT_SECRET'),
   port: Number(process.env.PORT ?? '3000'),
 };
