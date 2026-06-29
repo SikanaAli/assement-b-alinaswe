@@ -237,14 +237,14 @@ Authorization: Bearer <accessToken>
 
 ## Reviewer APIs
 
-- `GET /applications/reviewer/queue` returns the reviewer queue and supports optional filtering by `status`.
+- `GET /applications/reviewer/queue` returns the reviewer queue and supports optional filtering by `status`, `category`, and `search`, plus `page` and `pageSize` pagination.
 - `POST /applications/:id/transition` applies reviewer transitions and creates an audit log entry.
 - Reviewer transitions are limited to `UNDER_REVIEW`, `APPROVED`, `REJECTED`, and `RETURNED`.
 
 Reviewer queue example:
 
 ```http
-GET /applications/reviewer/queue?status=SUBMITTED
+GET /applications/reviewer/queue?status=SUBMITTED&category=FINANCE&search=budget&page=1&pageSize=10
 Authorization: Bearer <reviewerAccessToken>
 ```
 
