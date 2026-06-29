@@ -26,8 +26,6 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-
-  //OPEN API DOCS
   const config = new DocumentBuilder()
     .setTitle('Submission & Approval Workflow API')
     .setDescription('Developed by Alinaswe Sikana')

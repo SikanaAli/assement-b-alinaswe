@@ -140,7 +140,7 @@ export class ApplicationsService {
       where: { id },
       include: {
         auditLogs: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
           include: {
             actor: {
               select: {

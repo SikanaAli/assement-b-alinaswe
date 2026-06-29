@@ -25,9 +25,11 @@ submission-approval-workflow/
 1. Copy `.env.example` to `.env`.
 2. Optionally copy `frontend/.env.example` to `frontend/.env` for Vite API URL overrides. `backend/.env.example` mirrors the backend variables for reference.
 3. Install backend and frontend dependencies.
-4. Start PostgreSQL and the backend with Docker Compose.
+4. Start PostgreSQL, frontend and the backend with Docker Compose.
 5. Seed the database.
 6. Run the frontend separately with Vite.
+
+#### Note: Runing the backend without using the docker compose file will likely fail, unless you did the smart thing (͡ ° ͜ʖ ͡ °)... the connection string the .env points to a working postgres database
 
 ## Commands
 
@@ -114,6 +116,7 @@ Health check:
 ```bash
 curl http://127.0.0.1:3000/health
 ```
+#### Health-check is just a smoke screen and no actual checks are being peformed
 
 ## Data Model
 
@@ -266,13 +269,33 @@ Content-Type: application/json
 - Unit tests: `cd backend && npm test`
 - E2E tests: `cd backend && npm run test:e2e`
 - E2E tests require `TEST_DATABASE_URL` to point to a dedicated test database.
+- When using the local Docker Postgres service, create the test database once before running e2e tests.
 - The e2e suite resets `Application` and `AuditLog` data before each test and reapplies migrations to the test database during startup.
 - Covered rules include applicant self-approval denial, reviewer approval with audit trail creation, reviewer rejection comment requirements, and applicant edit denial after submission.
 - The current edit-after-submit behavior returns `403` because the workflow treats post-submission edits as a forbidden action rather than a malformed request.
 
+Create the local test database once:
+
+```bash
+docker exec submission-approval-workflow-postgres psql -U workflow_user -d postgres -c "CREATE DATABASE workflow_db_test"
+```
+
 ## Current Backend Scope
 
-- `GET /health` returns the backend health status.
+- `GET /health` returns the backend health status (still a smoke screen 	(ㆆ _ ㆆ)).
 - Applicant-facing application endpoints are implemented.
 - Reviewer queue and transition endpoints are implemented.
 - Broader workflow business actions are intentionally not implemented yet.
+
+## AI Usage Disclosure
+
+- ChatGPT was used dusing the planing phase to break down the asessment into tasks as well as guidance on creating this mini-mono-repo.
+- Codex (vs-code extention) was used to clean up and support on bug-fixes as well as writing tests and peforming a final pass check.
+- Codex also run a check on the README and made a few addition to what was no initalo explaind in the RERADME e.g Tade-off and Testing
+
+## Trade-offs
+
+- The frontend is intentionally compact and still keeps most application logic in `frontend/src/App.tsx` to reduce setup overhead for the assessment.
+- Automated coverage is strongest on backend workflow rules and API behavior; browser-level frontend tests are not included.
+- Swagger/Scalar request documentation is thorough, but response bodies are still documented mostly by runtime examples rather than dedicated response DTO classes.
+- Local Docker Compose is optimized for assessment setup speed and currently focuses on PostgreSQL plus the backend API; the frontend is still documented to run separately with Vite in this branch.

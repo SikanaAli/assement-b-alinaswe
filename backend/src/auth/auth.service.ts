@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@prisma/client';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthUser } from './types/auth-user.type';
@@ -46,9 +45,4 @@ export class AuthService {
       user: authUser,
     };
   }
-
-  hasRole(userRole: Role, roles: Role[]) {
-    return roles.includes(userRole);
-  }
 }
-
