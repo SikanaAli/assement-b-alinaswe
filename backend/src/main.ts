@@ -25,9 +25,6 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-
-
-  //OPEN API DOCS
   const config = new DocumentBuilder()
     .setTitle('Submission & Approval Workflow API')
     .setDescription('Developed by Alinaswe Sikana')
@@ -41,7 +38,7 @@ async function bootstrap() {
     apiReference({
       content: document,
     }),
-  )
+  );
 
   await app.listen(env.port, env.host);
 }
