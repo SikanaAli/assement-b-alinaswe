@@ -81,6 +81,14 @@ type ReviewerQueueItem = {
   };
 };
 
+type ReviewerQueueResponse = {
+  items: ReviewerQueueItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 type AuditLog = {
   id: string;
   oldStatus: Status;
@@ -587,9 +595,21 @@ function ReviewerQueuePage({ api }: { api: ApiClient }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedFilter =
     (searchParams.get('status') as 'all' | Status | null) ?? 'all';
+  const selectedCategory =
+    (searchParams.get('category') as Category | null) ?? 'all';
+  const selectedSearch = searchParams.get('search') ?? '';
+  const currentPage = Number(searchParams.get('page') ?? '1') || 1;
+  const currentPageSize = Number(searchParams.get('pageSize') ?? '10') || 10;
   const [items, setItems] = useState<ReviewerQueueItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchInput, setSearchInput] = useState(selectedSearch);
+
+  useEffect(() => {
+    setSearchInput(selectedSearch);
+  }, [selectedSearch]);
 
   useEffect(() => {
     let active = true;
@@ -597,14 +617,32 @@ function ReviewerQueuePage({ api }: { api: ApiClient }) {
     setLoading(true);
     setError('');
 
-    const query =
-      selectedFilter !== 'all' ? `?status=${encodeURIComponent(selectedFilter)}` : '';
+    const params = new URLSearchParams();
+
+    if (selectedFilter !== 'all') {
+      params.set('status', selectedFilter);
+    }
+
+    if (selectedCategory !== 'all') {
+      params.set('category', selectedCategory);
+    }
+
+    if (selectedSearch.trim()) {
+      params.set('search', selectedSearch.trim());
+    }
+
+    params.set('page', String(currentPage));
+    params.set('pageSize', String(currentPageSize));
 
     api
-      .get<ReviewerQueueItem[]>(`/applications/reviewer/queue${query}`)
+      .get<ReviewerQueueResponse>(
+        `/applications/reviewer/queue?${params.toString()}`,
+      )
       .then((data) => {
         if (active) {
-          setItems(data);
+          setItems(data.items);
+          setTotal(data.total);
+          setTotalPages(data.totalPages);
         }
       })
       .catch((apiError: ApiError) => {
@@ -621,15 +659,60 @@ function ReviewerQueuePage({ api }: { api: ApiClient }) {
     return () => {
       active = false;
     };
-  }, [api, selectedFilter]);
+  }, [api, currentPage, currentPageSize, selectedCategory, selectedFilter, selectedSearch]);
 
-  function handleFilterChange(nextFilter: 'all' | Status) {
-    if (nextFilter === 'all') {
-      setSearchParams({});
-      return;
+  function updateQueueParams(next: {
+    status?: 'all' | Status;
+    category?: 'all' | Category;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const params = new URLSearchParams(searchParams);
+    const nextStatus = next.status ?? selectedFilter;
+    const nextCategory = next.category ?? selectedCategory;
+    const nextSearch = next.search ?? selectedSearch;
+    const nextPage = next.page ?? 1;
+    const nextPageSize = next.pageSize ?? currentPageSize;
+
+    if (nextStatus === 'all') {
+      params.delete('status');
+    } else {
+      params.set('status', nextStatus);
     }
 
-    setSearchParams({ status: nextFilter });
+    if (nextCategory === 'all') {
+      params.delete('category');
+    } else {
+      params.set('category', nextCategory);
+    }
+
+    if (nextSearch.trim()) {
+      params.set('search', nextSearch.trim());
+    } else {
+      params.delete('search');
+    }
+
+    params.set('page', String(nextPage));
+    params.set('pageSize', String(nextPageSize));
+    setSearchParams(params);
+  }
+
+  function handleFilterChange(nextFilter: 'all' | Status) {
+    updateQueueParams({ status: nextFilter, page: 1 });
+  }
+
+  function handleCategoryChange(nextCategory: 'all' | Category) {
+    updateQueueParams({ category: nextCategory, page: 1 });
+  }
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    updateQueueParams({ search: searchInput, page: 1 });
+  }
+
+  function handlePageChange(nextPage: number) {
+    updateQueueParams({ page: nextPage });
   }
 
   return (
@@ -641,6 +724,48 @@ function ReviewerQueuePage({ api }: { api: ApiClient }) {
             Review submitted applications and move them through the workflow.
           </CardDescription>
         </div>
+        <form className="flex flex-col gap-3 md:flex-row" onSubmit={handleSearchSubmit}>
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search by title, description, owner, or email"
+          />
+          <select
+            className={nativeSelectClassName}
+            value={selectedCategory}
+            onChange={(event) =>
+              handleCategoryChange(
+                event.target.value === 'all'
+                  ? 'all'
+                  : (event.target.value as Category),
+              )
+            }
+          >
+            <option value="all">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+          <select
+            className={nativeSelectClassName}
+            value={String(currentPageSize)}
+            onChange={(event) =>
+              updateQueueParams({
+                page: 1,
+                pageSize: Number(event.target.value),
+              })
+            }
+          >
+            {[10, 25, 50].map((pageSize) => (
+              <option key={pageSize} value={pageSize}>
+                {pageSize} / page
+              </option>
+            ))}
+          </select>
+          <Button type="submit">Search</Button>
+        </form>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Queue status filter">
           {reviewerQueueFilters.map((filter) => (
             <Button
@@ -670,43 +795,72 @@ function ReviewerQueuePage({ api }: { api: ApiClient }) {
         ) : null}
 
         {!loading && !error && items.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead>Open</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.title}</TableCell>
-                  <TableCell>
-                    <div>{item.owner.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {item.owner.email}
-                    </div>
-                  </TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>{formatAmount(item.amount)}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={item.status} />
-                  </TableCell>
-                  <TableCell>{formatDateTime(item.updatedAt)}</TableCell>
-                  <TableCell>
-                    <Button asChild size="sm" variant="outline">
-                      <Link to={`/applications/${item.id}`}>View details</Link>
-                    </Button>
-                  </TableCell>
+          <>
+            <div className="flex flex-col gap-2 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+              <p>
+                Showing {(currentPage - 1) * currentPageSize + 1}-
+                {Math.min(currentPage * currentPageSize, total)} of {total} applications
+              </p>
+              <p>
+                Page {currentPage} of {totalPages}
+              </p>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Owner</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead>Open</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.title}</TableCell>
+                    <TableCell>
+                      <div>{item.owner.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {item.owner.email}
+                      </div>
+                    </TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{formatAmount(item.amount)}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={item.status} />
+                    </TableCell>
+                    <TableCell>{formatDateTime(item.updatedAt)}</TableCell>
+                    <TableCell>
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/applications/${item.id}`}>View details</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={currentPage <= 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={currentPage >= totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </>
         ) : null}
       </CardContent>
     </Card>
@@ -1175,25 +1329,29 @@ function ApplicationDetailPage({
             {application.auditLogs.length === 0 ? (
               <StateCard description="No workflow history yet." />
             ) : (
-              <ol className="space-y-3">
+              <ol className="space-y-2">
                 {application.auditLogs.map((log) => (
                   <li
                     key={log.id}
-                    className="rounded-lg border border-border bg-muted/40 p-4"
+                    className="rounded-lg border border-border bg-muted/30 px-3 py-2.5"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <strong>
-                        {log.oldStatus} → {log.newStatus}
-                      </strong>
-                      <span className="text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge status={log.oldStatus} />
+                        <span className="text-sm text-muted-foreground">→</span>
+                        <StatusBadge status={log.newStatus} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">
                         {formatDateTime(log.createdAt)}
                       </span>
                     </div>
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      {log.actor.name} ({log.actor.email})
-                    </div>
-                    <div className="mt-2 text-sm text-foreground">
-                      {log.comment?.trim() ? log.comment : 'No comment provided.'}
+                    <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        {log.actor.name} · {log.actor.email}
+                      </div>
+                      <div className="max-w-2xl text-sm text-foreground sm:text-right">
+                        {log.comment?.trim() ? log.comment : 'No comment provided.'}
+                      </div>
                     </div>
                   </li>
                 ))}

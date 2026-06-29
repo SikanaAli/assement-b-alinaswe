@@ -49,31 +49,89 @@ export class ApplicationsService {
   ) {
     this.assertReviewerRole(currentUser);
 
-    return this.prisma.application.findMany({
-      where: {
-        status: reviewerQueueQueryDto.status
-          ? (reviewerQueueQueryDto.status as Status)
-          : {
-              in: reviewerQueueStatuses as unknown as Status[],
-            },
-      },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        title: true,
-        category: true,
-        amount: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        owner: {
+    const page = reviewerQueueQueryDto.page ?? 1;
+    const pageSize = reviewerQueueQueryDto.pageSize ?? 10;
+    const search = reviewerQueueQueryDto.search?.trim();
+
+    const where: Prisma.ApplicationWhereInput = {
+      status: reviewerQueueQueryDto.status
+        ? (reviewerQueueQueryDto.status as Status)
+        : {
+            in: reviewerQueueStatuses as unknown as Status[],
+          },
+      ...(reviewerQueueQueryDto.category
+        ? { category: reviewerQueueQueryDto.category }
+        : {}),
+      ...(search
+        ? {
+            OR: [
+              {
+                title: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                description: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                owner: {
+                  name: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+              {
+                owner: {
+                  email: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    return this.prisma.$transaction(async (transaction) => {
+      const [items, total] = await Promise.all([
+        transaction.application.findMany({
+          where,
+          orderBy: { updatedAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
           select: {
             id: true,
-            name: true,
-            email: true,
+            title: true,
+            category: true,
+            amount: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
           },
-        },
-      },
+        }),
+        transaction.application.count({ where }),
+      ]);
+
+      return {
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      };
     });
   }
 
