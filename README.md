@@ -316,7 +316,8 @@ E2E test note:
 - Codex also run a check on the README and made a few addition to what was no initalo explaind in the RERADME e.g Tade-off and Testing
 
 ## Trade-offs
-
+- One key thing i would fix the the router in the frontend. while on localhost it seams to work fine, once deployed, it kinda breaks on refresh
+- I would also breaks this into components for better code maintainability as opposed to having most of the logic in a signle file i.e App.tsx
 - Swagger request documentation is explicit, but most response bodies are still inferred from returned objects rather than dedicated response DTOs.
 - The frontend is intentionally compact and keeps most state in a single `App.tsx` file to stay within assessment scope.
 - Docker Compose is optimized for reproducible local development rather than production deployment hardening.
