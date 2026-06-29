@@ -32,6 +32,7 @@ async function bootstrap() {
     .setTitle('Submission & Approval Workflow API')
     .setDescription('Developed by Alinaswe Sikana')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   const document = () => SwaggerModule.createDocument(app, config);
 
